@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+  Game page for the Arabic trivia game.  This page loads the
+  categories and questions from an external JSON file and allows the
+  user to select categories, answer questions, and track their score.
+  The interface is kept simple and clean, with right‑to‑left layout
+  throughout.  All labels and messages are provided in Arabic.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http‑equiv="X‑UA‑Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>اللعبة</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="game-container">
+      <!-- Stage 1: Main category selection -->
+      <div id="categorySelection" class="selection-section">
+        <h2>اختر فئة رئيسية</h2>
+        <div id="categories" class="category-grid"></div>
+      </div>
+
+      <!-- Stage 2: Subcategory selection -->
+      <div id="subcategorySelection" class="selection-section hidden">
+        <h2>اختر فئة فرعية</h2>
+        <button id="backToCategoriesBtn" class="secondary-btn">العودة للفئات</button>
+        <div id="subcategories" class="category-grid"></div>
+      </div>
+
+      <!-- Stage 3: Questions -->
+      <div id="questionStage" class="hidden">
+        <div class="scoreboard">
+          <span id="currentQuestionCounter">السؤال: 1 / 18</span>
+          <span id="scoreDisplay">النقاط: 0</span>
+        </div>
+        <div class="question-section">
+          <div id="questionText" class="question-text"></div>
+          <ul id="optionsList" class="options-list"></ul>
+        </div>
+        <button id="submitAnswerBtn" class="primary-btn" disabled>
+          إرسال الإجابة
+        </button>
+      </div>
+
+      <!-- Stage 4: Results -->
+      <div id="resultStage" class="hidden">
+        <h2>انتهت اللعبة!</h2>
+        <p id="finalScoreText"></p>
+        <button id="playAgainBtn" class="primary-btn">العودة للصفحة الرئيسية</button>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
