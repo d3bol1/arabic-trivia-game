@@ -24,6 +24,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM elements
   const categoriesContainer = document.getElementById('categories');
+  // Container for subcategories and back button
+  const subcategoriesContainer = document.getElementById('subcategories');
+  const subcategorySelection = document.getElementById('subcategorySelection');
+  const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
   const startGameBtn = document.getElementById('startGameBtn');
   const categorySelection = document.getElementById('categorySelection');
   const questionStage = document.getElementById('questionStage');
@@ -38,7 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game state
   let categoriesData = [];
-  let selectedCategories = [];
+  // The currently chosen main category and subcategory
+  let selectedCategory = null;
+  let selectedSubcategory = null;
+  // Pool of questions for the active subcategory
   let questionsPool = [];
   let currentQuestionIndex = 0;
   let score = 0;
@@ -287,66 +294,123 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then((data) => {
       categoriesData = data.categories;
+      // Normalize categories: ensure each has subcategories array
+      normalizeCategories(categoriesData);
       renderCategories();
     })
     .catch((err) => {
       console.warn('Using fallback questions due to fetch error:', err);
       categoriesData = fallbackQuestions.categories;
+      // Normalize categories from fallback data
+      normalizeCategories(categoriesData);
       renderCategories();
     });
 
   /**
    * Render the category cards based on the loaded data.  Each card
-   * displays the Arabic name of the category and can be selected
-   * or deselected by the player.  Only three categories may be
-   * selected at once.  Once three are selected, the Start Game
-   * button becomes visible.
+   * displays the Arabic name of the main category along with an
+   * image.  Clicking a card selects the category and transitions
+   * to the subcategory selection stage.
    */
   function renderCategories() {
+    // Clear any existing cards
+    categoriesContainer.innerHTML = '';
     categoriesData.forEach((cat) => {
       const card = document.createElement('div');
       card.classList.add('category-card');
-      card.textContent = cat.name;
-      card.dataset.categoryId = cat.id;
-      card.addEventListener('click', () => handleCategoryClick(card));
+      // Image element
+      const img = document.createElement('img');
+      img.src = cat.image || '';
+      img.alt = cat.name;
+      card.appendChild(img);
+      // Title overlay
+      const title = document.createElement('div');
+      title.classList.add('card-title');
+      title.textContent = cat.name;
+      card.appendChild(title);
+      // Click handler to select this main category
+      card.addEventListener('click', () => handleMainCategoryClick(cat));
       categoriesContainer.appendChild(card);
     });
   }
 
   /**
-   * Handle selection and deselection of a category card.  If a card
-   * is already selected, clicking it again will remove it from the
-   * selection.  Otherwise, if fewer than three categories are
-   * currently selected, the card becomes selected.  The Start Game
-   * button is only shown when exactly three categories are selected.
+   * Handle click on a main category card.  Stores the selected
+   * category, hides the main category selection section, and
+   * displays the subcategories for that category.
    *
-   * @param {HTMLElement} card The category card that was clicked
+   * @param {Object} categoryObj The category object that was clicked
    */
-  function handleCategoryClick(card) {
-    const categoryId = card.dataset.categoryId;
-    if (card.classList.contains('selected')) {
-      // Deselect this category
-      card.classList.remove('selected');
-      selectedCategories = selectedCategories.filter((id) => id !== categoryId);
-    } else {
-      // Select this category if limit not reached
-      if (selectedCategories.length < 3) {
-        card.classList.add('selected');
-        selectedCategories.push(categoryId);
-      }
-    }
-    // Toggle visibility of Start Game button based on selection count
-    if (selectedCategories.length === 3) {
-      startGameBtn.classList.remove('hidden');
-    } else {
-      startGameBtn.classList.add('hidden');
-    }
+  function handleMainCategoryClick(categoryObj) {
+    selectedCategory = categoryObj;
+    // Hide main category selection and show subcategory selection
+    categorySelection.classList.add('hidden');
+    // Render subcategories for this category
+    renderSubcategories(categoryObj.subcategories || []);
+    subcategorySelection.classList.remove('hidden');
   }
 
-  // Start Game button click handler
-  startGameBtn.addEventListener('click', () => {
-    startGame();
-  });
+  /**
+   * Render the subcategory cards for a given list of subcategories.
+   * Each subcategory card shows an image and name.  Clicking a card
+   * selects the subcategory and starts the game with its questions.
+   *
+   * @param {Array} subcats Array of subcategory objects
+   */
+  function renderSubcategories(subcats) {
+    // Clear existing subcategory cards
+    subcategoriesContainer.innerHTML = '';
+    subcats.forEach((sub) => {
+      const card = document.createElement('div');
+      card.classList.add('category-card');
+      // Image for subcategory
+      const img = document.createElement('img');
+      img.src = sub.image || '';
+      img.alt = sub.name;
+      card.appendChild(img);
+      // Title overlay
+      const title = document.createElement('div');
+      title.classList.add('card-title');
+      title.textContent = sub.name;
+      card.appendChild(title);
+      // Click handler: choose this subcategory and start game
+      card.addEventListener('click', () => handleSubcategoryClick(sub));
+      subcategoriesContainer.appendChild(card);
+    });
+  }
+
+  /**
+   * Handle the selection of a subcategory.  Stores the selected
+   * subcategory, builds the pool of questions from it, and starts
+   * the game by showing the question stage.
+   *
+   * @param {Object} subcat The selected subcategory object
+   */
+  function handleSubcategoryClick(subcat) {
+    selectedSubcategory = subcat;
+    // Build question pool from subcategory
+    questionsPool = [...(subcat.questions || [])];
+    // Shuffle questions for randomness
+    shuffleArray(questionsPool);
+    currentQuestionIndex = 0;
+    score = 0;
+    // Hide subcategory selection and show question stage
+    subcategorySelection.classList.add('hidden');
+    questionStage.classList.remove('hidden');
+    // Show first question
+    showQuestion();
+  }
+
+  // Back button from subcategories to main categories
+  if (backToCategoriesBtn) {
+    backToCategoriesBtn.addEventListener('click', () => {
+      // Hide subcategories and show categories again
+      subcategorySelection.classList.add('hidden');
+      categorySelection.classList.remove('hidden');
+      selectedCategory = null;
+      selectedSubcategory = null;
+    });
+  }
 
   /**
    * Initialize the game by building a pool of questions based on the
@@ -355,27 +419,41 @@ document.addEventListener('DOMContentLoaded', () => {
    * shuffled to randomize the order.  The question stage UI is
    * displayed and the first question is presented.
    */
+  /**
+   * Start the game by preparing a pool of questions and showing the
+   * question stage.  This function can be used for backward
+   * compatibility if called directly, but in the new game flow it
+   * is not invoked because the pool is prepared when a subcategory
+   * is selected.  If a subcategory has been selected, it uses
+   * `selectedSubcategory.questions`; otherwise it falls back to
+   * the old logic of selecting questions from multiple categories.
+   */
   function startGame() {
     // Reset game state
     questionsPool = [];
     currentQuestionIndex = 0;
     score = 0;
-    // Build the pool: select two random questions from each selected category
-    selectedCategories.forEach((catId) => {
-      const categoryObj = categoriesData.find((c) => c.id === catId);
-      if (categoryObj) {
-        const questionsCopy = [...categoryObj.questions];
-        shuffleArray(questionsCopy);
-        // Use first two questions
-        questionsPool.push(...questionsCopy.slice(0, 2));
-      }
-    });
-    // Shuffle the combined pool so the order is random
+    if (selectedSubcategory && Array.isArray(selectedSubcategory.questions)) {
+      // Use all questions from the selected subcategory
+      questionsPool = [...selectedSubcategory.questions];
+    } else if (typeof selectedCategories !== 'undefined' && Array.isArray(selectedCategories)) {
+      // Backward compatibility: select two questions from each chosen category
+      selectedCategories.forEach((catId) => {
+        const categoryObj = categoriesData.find((c) => c.id === catId);
+        if (categoryObj) {
+          const questionsCopy = [...(categoryObj.questions || [])];
+          shuffleArray(questionsCopy);
+          questionsPool.push(...questionsCopy.slice(0, 2));
+        }
+      });
+    }
+    // Shuffle the pool for randomness
     shuffleArray(questionsPool);
-    // Hide category selection stage and show question stage
+    // Hide selections and show question stage
     categorySelection.classList.add('hidden');
+    subcategorySelection.classList.add('hidden');
     questionStage.classList.remove('hidden');
-    // Display the first question
+    // Show first question
     showQuestion();
   }
 
@@ -512,5 +590,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
+  }
+
+  /**
+   * Normalize the category data to ensure each category contains a
+   * `subcategories` array.  If a category does not define
+   * subcategories (e.g. fallback data uses a flat structure with
+   * `questions` directly under the category), this function wraps
+   * those questions into a single synthetic subcategory so the rest
+   * of the game logic can treat both data shapes uniformly.
+   *
+   * @param {Array} cats Array of category objects to normalize
+   */
+  function normalizeCategories(cats) {
+    cats.forEach((cat) => {
+      if (!cat.subcategories) {
+        const sc = {
+          id: `${cat.id}_sub`,
+          name: cat.name,
+          image: cat.image || '',
+          questions: cat.questions || [],
+        };
+        cat.subcategories = [sc];
+      }
+    });
   }
 });

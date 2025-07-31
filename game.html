@@ -20,16 +20,20 @@
   </head>
   <body>
     <div class="game-container">
-      <!-- Stage 1: Category selection -->
+      <!-- Stage 1: Main category selection -->
       <div id="categorySelection" class="selection-section">
-        <h2>اختر ثلاث فئات للعب</h2>
+        <h2>اختر فئة رئيسية</h2>
         <div id="categories" class="category-grid"></div>
-        <button id="startGameBtn" class="primary-btn hidden">
-          ابدأ الجولة
-        </button>
       </div>
 
-      <!-- Stage 2: Questions -->
+      <!-- Stage 2: Subcategory selection -->
+      <div id="subcategorySelection" class="selection-section hidden">
+        <h2>اختر فئة فرعية</h2>
+        <button id="backToCategoriesBtn" class="secondary-btn">العودة للفئات</button>
+        <div id="subcategories" class="category-grid"></div>
+      </div>
+
+      <!-- Stage 3: Questions -->
       <div id="questionStage" class="hidden">
         <div class="scoreboard">
           <span id="currentQuestionCounter">السؤال: 1 / 18</span>
@@ -44,7 +48,7 @@
         </button>
       </div>
 
-      <!-- Stage 3: Results -->
+      <!-- Stage 4: Results -->
       <div id="resultStage" class="hidden">
         <h2>انتهت اللعبة!</h2>
         <p id="finalScoreText"></p>
